@@ -676,6 +676,100 @@ def api_get_storage_mode():
     return jsonify({'storage_mode': config.get('storage_mode', 'browser')})
 
 
+@app.route('/api/update-metal-prices', methods=['POST'])
+def api_update_metal_prices():
+    """Update gold and silver prices in holdings"""
+    try:
+        # Fetch live rates
+        rates = api_services.get_metal_rates()
+        
+        if not rates.get('gold_24k') and not rates.get('silver'):
+            return jsonify({'success': False, 'message': 'Unable to fetch metal prices'})
+        
+        if is_firebase_mode():
+            # Firebase mode: update in database
+            updated_gold = 0
+            updated_silver = 0
+            
+            # Update Gold holdings
+            gold_df = get_data('Gold')
+            if not gold_df.empty:
+                for idx, row in gold_df.iterrows():
+                    purity = str(row.get('purity', '')).upper()
+                    if '24' in purity and rates.get('gold_24k'):
+                        gold_df.at[idx, 'current_price_per_gram'] = rates['gold_24k']
+                        updated_gold += 1
+                    elif '22' in purity and rates.get('gold_22k'):
+                        gold_df.at[idx, 'current_price_per_gram'] = rates['gold_22k']
+                        updated_gold += 1
+                    elif '18' in purity and rates.get('gold_18k'):
+                        gold_df.at[idx, 'current_price_per_gram'] = rates['gold_18k']
+                        updated_gold += 1
+                save_data('Gold', gold_df)
+            
+            # Update Silver holdings
+            silver_df = get_data('Silver')
+            if not silver_df.empty:
+                for idx, row in silver_df.iterrows():
+                    purity = str(row.get('purity', '')).upper()
+                    if rates.get('silver'):
+                        if '999' in purity:
+                            silver_df.at[idx, 'current_price_per_gram'] = rates['silver']
+                        elif '925' in purity:
+                            silver_df.at[idx, 'current_price_per_gram'] = int(rates['silver'] * 0.925)
+                        else:
+                            silver_df.at[idx, 'current_price_per_gram'] = rates['silver']
+                        updated_silver += 1
+                save_data('Silver', silver_df)
+            
+            return jsonify({
+                'success': True,
+                'message': f'Updated {updated_gold} gold and {updated_silver} silver items',
+                'rates': rates
+            })
+        else:
+            # Browser mode: update provided data and return
+            payload = request.get_json() or {}
+            gold_items = payload.get('gold', [])
+            silver_items = payload.get('silver', [])
+            
+            updated_gold = []
+            updated_silver = []
+            
+            # Update Gold holdings
+            for item in gold_items:
+                purity = str(item.get('purity', '')).upper()
+                if '24' in purity and rates.get('gold_24k'):
+                    item['current_price_per_gram'] = rates['gold_24k']
+                elif '22' in purity and rates.get('gold_22k'):
+                    item['current_price_per_gram'] = rates['gold_22k']
+                elif '18' in purity and rates.get('gold_18k'):
+                    item['current_price_per_gram'] = rates['gold_18k']
+                updated_gold.append(item)
+            
+            # Update Silver holdings
+            for item in silver_items:
+                purity = str(item.get('purity', '')).upper()
+                if rates.get('silver'):
+                    if '999' in purity:
+                        item['current_price_per_gram'] = rates['silver']
+                    elif '925' in purity:
+                        item['current_price_per_gram'] = int(rates['silver'] * 0.925)
+                    else:
+                        item['current_price_per_gram'] = rates['silver']
+                updated_silver.append(item)
+            
+            return jsonify({
+                'success': True,
+                'message': f'Updated {len(updated_gold)} gold and {len(updated_silver)} silver items',
+                'gold': updated_gold,
+                'silver': updated_silver,
+                'rates': rates
+            })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
 @app.route('/api/export-excel', methods=['POST'])
 def api_export_excel():
     """Export data to Excel file"""
