@@ -1,0 +1,6 @@
+pandas
+openpyxl
+typer[all]
+Flask
+requests
+firebase-admin  # Optional: Only needed for Firebase storage mode

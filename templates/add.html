@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="page-title mb-0"><i class="bi bi-plus-circle"></i> Add New Item</h1>
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('add_item') }}">
+            <div class="mb-4">
+                <label for="type" class="form-label fw-bold">Select Asset Type</label>
+                <select class="form-select" id="type" name="type" onchange="this.form.submit()">
+                    <option value="">-- Select Type --</option>
+                    <optgroup label="Investments">
+                        <option value="mf" {% if type == 'mf' %}selected{% endif %}>Mutual Fund</option>
+                        <option value="stock" {% if type == 'stock' %}selected{% endif %}>Stock</option>
+                        <option value="nps" {% if type == 'nps' %}selected{% endif %}>NPS Account</option>
+                        <option value="ppf" {% if type == 'ppf' %}selected{% endif %}>PPF</option>
+                        <option value="epf" {% if type == 'epf' %}selected{% endif %}>EPF</option>
+                    </optgroup>
+                    <optgroup label="Real Assets">
+                        <option value="realestate" {% if type == 'realestate' %}selected{% endif %}>Real Estate</option>
+                        <option value="gold" {% if type == 'gold' %}selected{% endif %}>Gold</option>
+                        <option value="silver" {% if type == 'silver' %}selected{% endif %}>Silver</option>
+                    </optgroup>
+                    <optgroup label="Banking">
+                        <option value="bank" {% if type == 'bank' %}selected{% endif %}>Bank Account</option>
+                        <option value="fd" {% if type == 'fd' %}selected{% endif %}>Fixed Deposit</option>
+                        <option value="cc" {% if type == 'cc' %}selected{% endif %}>Credit Card</option>
+                        <option value="loan" {% if type == 'loan' %}selected{% endif %}>Loan</option>
+                    </optgroup>
+                    <optgroup label="Other">
+                        <option value="insurance" {% if type == 'insurance' %}selected{% endif %}>Insurance Policy</option>
+                    </optgroup>
+                </select>
+            </div>
+        </form>
+
+        {% if type %}
+        <hr>
+        <h5 class="mb-4">
+            {% if type == 'mf' %}
+                <i class="bi bi-graph-up-arrow text-primary"></i> Add Mutual Fund
+            {% elif type == 'stock' %}
+                <i class="bi bi-bar-chart text-primary"></i> Add Stock
+            {% elif type == 'realestate' %}
+                <i class="bi bi-house text-primary"></i> Add Real Estate
+            {% elif type == 'gold' %}
+                <i class="bi bi-gem text-primary"></i> Add Gold
+            {% elif type == 'silver' %}
+                <i class="bi bi-coin text-primary"></i> Add Silver
+            {% elif type == 'bank' %}
+                <i class="bi bi-bank text-primary"></i> Add Bank Account
+            {% elif type == 'fd' %}
+                <i class="bi bi-safe2 text-primary"></i> Add Fixed Deposit
+            {% elif type == 'nps' %}
+                <i class="bi bi-piggy-bank text-primary"></i> Add NPS Account
+            {% elif type == 'ppf' %}
+                <i class="bi bi-safe text-primary"></i> Add PPF
+            {% elif type == 'epf' %}
+                <i class="bi bi-briefcase text-primary"></i> Add EPF
+            {% elif type == 'insurance' %}
+                <i class="bi bi-shield-check text-primary"></i> Add Insurance Policy
+            {% elif type == 'cc' %}
+                <i class="bi bi-credit-card text-primary"></i> Add Credit Card
+            {% elif type == 'loan' %}
+                <i class="bi bi-cash-stack text-primary"></i> Add Loan
+            {% endif %}
+        </h5>
+        <form method="POST" action="{{ url_for('add_item') }}">
+            <input type="hidden" name="type" value="{{ type }}">
+            <div class="row">
+                {% for field in fields %}
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ field }}" class="form-label">{{ field.replace('_', ' ')|title }}</label>
+                        {% if 'date' in field %}
+                            <input type="date" class="form-control" id="{{ field }}" name="{{ field }}" required>
+                        {% elif 'balance' in field or 'amount' in field or 'price' in field or 'nav' in field or 'limit' in field or 'assured' in field or 'premium' in field or 'rate' in field or 'emi' in field or 'points' in field or 'units' in field %}
+                            <input type="number" step="0.01" class="form-control" id="{{ field }}" name="{{ field }}" required>
+                        {% elif 'tenure' in field or 'months' in field or 'billing' in field or 'due' in field %}
+                            <input type="number" class="form-control" id="{{ field }}" name="{{ field }}" required>
+                        {% elif field == 'category' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Category</option>
+                                <option value="Equity">Equity</option>
+                                <option value="Debt">Debt</option>
+                                <option value="Hybrid">Hybrid</option>
+                                <option value="Index">Index Fund</option>
+                                <option value="ELSS">ELSS</option>
+                            </select>
+                        {% elif field == 'account_type' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Type</option>
+                                <option value="Savings">Savings</option>
+                                <option value="Current">Current</option>
+                                <option value="FD">Fixed Deposit</option>
+                                <option value="RD">Recurring Deposit</option>
+                            </select>
+                        {% elif field == 'scheme_preference' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Preference</option>
+                                <option value="Aggressive">Aggressive (LC75)</option>
+                                <option value="Moderate">Moderate (LC50)</option>
+                                <option value="Conservative">Conservative (LC25)</option>
+                                <option value="Auto">Auto Choice</option>
+                            </select>
+                        {% elif field == 'policy_type' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Type</option>
+                                <option value="Term">Term Life</option>
+                                <option value="Endowment">Endowment</option>
+                                <option value="ULIP">ULIP</option>
+                                <option value="Health">Health Insurance</option>
+                                <option value="Motor">Motor Insurance</option>
+                            </select>
+                        {% elif field == 'premium_frequency' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Frequency</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="Quarterly">Quarterly</option>
+                                <option value="Half-Yearly">Half-Yearly</option>
+                                <option value="Yearly">Yearly</option>
+                                <option value="Single">Single Premium</option>
+                            </select>
+                        {% elif field == 'loan_type' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Type</option>
+                                <option value="Home">Home Loan</option>
+                                <option value="Car">Car Loan</option>
+                                <option value="Personal">Personal Loan</option>
+                                <option value="Education">Education Loan</option>
+                                <option value="Gold">Gold Loan</option>
+                            </select>
+                        {% elif field == 'property_type' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Type</option>
+                                <option value="Residential">Residential</option>
+                                <option value="Commercial">Commercial</option>
+                                <option value="Land">Land</option>
+                                <option value="Plot">Plot</option>
+                            </select>
+                        {% elif field == 'item_type' and type == 'gold' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Type</option>
+                                <option value="Physical">Physical Gold</option>
+                                <option value="Digital">Digital Gold</option>
+                                <option value="SGB">Sovereign Gold Bond</option>
+                                <option value="Gold ETF">Gold ETF</option>
+                            </select>
+                        {% elif field == 'item_type' and type == 'silver' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Type</option>
+                                <option value="Physical">Physical Silver</option>
+                                <option value="Digital">Digital Silver</option>
+                                <option value="Silver ETF">Silver ETF</option>
+                            </select>
+                        {% elif field == 'purity' and type == 'gold' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Purity</option>
+                                <option value="24K">24K (99.9%)</option>
+                                <option value="22K">22K (91.6%)</option>
+                                <option value="18K">18K (75%)</option>
+                            </select>
+                        {% elif field == 'purity' and type == 'silver' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Purity</option>
+                                <option value="999">999 Fine Silver</option>
+                                <option value="925">925 Sterling Silver</option>
+                            </select>
+                        {% elif field == 'exchange' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Exchange</option>
+                                <option value="NSE">NSE</option>
+                                <option value="BSE">BSE</option>
+                            </select>
+                        {% elif field == 'interest_payout' %}
+                            <select class="form-select" id="{{ field }}" name="{{ field }}" required>
+                                <option value="">Select Payout Frequency</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="Quarterly">Quarterly</option>
+                                <option value="Half-Yearly">Half-Yearly</option>
+                                <option value="Yearly">Yearly</option>
+                                <option value="At Maturity">At Maturity</option>
+                            </select>
+                        {% elif field == 'expected_return' or field == 'appreciation_rate' %}
+                            <div class="input-group">
+                                <input type="number" step="0.1" class="form-control" id="{{ field }}" name="{{ field }}" value="8" required>
+                                <span class="input-group-text">% p.a.</span>
+                            </div>
+                        {% elif 'weight' in field or 'grams' in field %}
+                            <div class="input-group">
+                                <input type="number" step="0.01" class="form-control" id="{{ field }}" name="{{ field }}" required>
+                                <span class="input-group-text">grams</span>
+                            </div>
+                        {% elif 'quantity' in field %}
+                            <input type="number" class="form-control" id="{{ field }}" name="{{ field }}" required>
+                        {% else %}
+                            <input type="text" class="form-control" id="{{ field }}" name="{{ field }}" required>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> Add Item
+                </button>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 class="page-title"><i class="bi bi-speedometer2"></i> Dashboard</h1>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card summary-card success">
+            <div class="card-body">
+                <h6 class="text-white-50">Net Worth</h6>
+                <h3>₹ {{ "{:,.0f}".format(summary.net_worth) }}</h3>
+                <small class="text-white-50">Assets - Liabilities</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card summary-card">
+            <div class="card-body">
+                <h6 class="text-white-50">Total Assets</h6>
+                <h3>₹ {{ "{:,.0f}".format(summary.total_assets) }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card summary-card danger">
+            <div class="card-body">
+                <h6 class="text-white-50">Total Liabilities</h6>
+                <h3>₹ {{ "{:,.0f}".format(summary.total_liabilities) }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Asset Breakdown -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="text-muted"><i class="bi bi-graph-up-arrow"></i> Mutual Funds</h6>
+                <h4>₹ {{ "{:,.0f}".format(summary.mutual_funds) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="text-muted"><i class="bi bi-bar-chart"></i> Stocks</h6>
+                <h4>₹ {{ "{:,.0f}".format(summary.stocks) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="text-muted"><i class="bi bi-house"></i> Real Estate</h6>
+                <h4>₹ {{ "{:,.0f}".format(summary.real_estate) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="text-muted"><i class="bi bi-gem"></i> Gold & Silver</h6>
+                <h4>₹ {{ "{:,.0f}".format(summary.gold + summary.silver) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="text-muted"><i class="bi bi-bank"></i> Bank + FD</h6>
+                <h4>₹ {{ "{:,.0f}".format(summary.bank_balance + summary.fixed_deposits) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="text-muted"><i class="bi bi-piggy-bank"></i> NPS + PPF + EPF</h6>
+                <h4>₹ {{ "{:,.0f}".format(summary.nps + summary.ppf + summary.epf) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="text-muted"><i class="bi bi-shield-check"></i> Insurance Cover</h6>
+                <h4>₹ {{ "{:,.0f}".format(summary.insurance_cover) }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card h-100 border-danger">
+            <div class="card-body">
+                <h6 class="text-danger"><i class="bi bi-cash-stack"></i> Loans Outstanding</h6>
+                <h4 class="text-danger">₹ {{ "{:,.0f}".format(summary.loans_outstanding) }}</h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-lightning"></i> Quick Actions</div>
+            <div class="card-body">
+                <a href="{{ url_for('networth_tracker') }}" class="btn btn-outline-success me-2 mb-2">
+                    <i class="bi bi-graph-up"></i> Track Net Worth
+                </a>
+                <a href="{{ url_for('forecast') }}" class="btn btn-outline-primary me-2 mb-2">
+                    <i class="bi bi-lightning"></i> View Forecast
+                </a>
+                <button onclick="updateMFNAV()" class="btn btn-outline-info me-2 mb-2">
+                    <i class="bi bi-arrow-repeat"></i> Update MF NAVs
+                </button>
+                <a href="{{ url_for('backup_data') }}" class="btn btn-outline-secondary mb-2">
+                    <i class="bi bi-download"></i> Backup Data
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><i class="bi bi-plus-circle"></i> Quick Add</div>
+            <div class="card-body">
+                <a href="{{ url_for('add_item', type='mf') }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Mutual Fund</a>
+                <a href="{{ url_for('add_item', type='stock') }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Stock</a>
+                <a href="{{ url_for('add_item', type='realestate') }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Real Estate</a>
+                <a href="{{ url_for('add_item', type='gold') }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Gold</a>
+                <a href="{{ url_for('add_item', type='silver') }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Silver</a>
+                <a href="{{ url_for('add_item', type='bank') }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Bank Account</a>
+                <a href="{{ url_for('add_item', type='fd') }}" class="btn btn-sm btn-outline-primary me-1 mb-1">Fixed Deposit</a>
+                <a href="{{ url_for('add_item', type='nps') }}" class="btn btn-sm btn-outline-primary me-1 mb-1">NPS</a>
+                <a href="{{ url_for('add_item', type='ppf') }}" class="btn btn-sm btn-outline-primary me-1 mb-1">PPF</a>
+                <a href="{{ url_for('add_item', type='epf') }}" class="btn btn-sm btn-outline-primary me-1 mb-1">EPF</a>
+                <a href="{{ url_for('add_item', type='loan') }}" class="btn btn-sm btn-outline-danger me-1 mb-1">Loan</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateMFNAV() {
+    const btn = event.target;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Updating...';
+    
+    fetch('/api/update-mf-nav', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            if (data.success) location.reload();
+        })
+        .catch(err => alert('Error updating NAVs'))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Update MF NAVs';
+        });
+}
+</script>
+
+<!-- Recent Data Overview -->
+{% if all_data %}
+<h5 class="mb-3">Portfolio Overview</h5>
+{% for sheet, items in all_data.items() %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-list-ul"></i> {{ sheet }}</span>
+            <span class="badge bg-primary">{{ items|length }} items</span>
+        </div>
+        <div class="card-body p-0">
+            {% if items %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                {% for key in items[0].keys() %}
+                                    <th>{{ key.replace('_', ' ')|title }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items[:3] %}
+                                <tr>
+                                    {% for value in item.values() %}
+                                        <td>{{ value }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if items|length > 3 %}
+                <div class="card-footer text-center">
+                    {% set type_key = sheet.lower().replace(' ', '').replace('accounts', 'account').replace('policies', 'insurance').replace('funds', 'fund').replace('cards', 'card') %}
+                    {% if sheet == 'Mutual Funds' %}
+                        <a href="{{ url_for('view_items', item_type='mf') }}" class="text-primary">View all {{ items|length }} items →</a>
+                    {% elif sheet == 'Bank Accounts' %}
+                        <a href="{{ url_for('view_items', item_type='bank') }}" class="text-primary">View all {{ items|length }} items →</a>
+                    {% elif sheet == 'NPS Accounts' %}
+                        <a href="{{ url_for('view_items', item_type='nps') }}" class="text-primary">View all {{ items|length }} items →</a>
+                    {% elif sheet == 'Insurance Policies' %}
+                        <a href="{{ url_for('view_items', item_type='insurance') }}" class="text-primary">View all {{ items|length }} items →</a>
+                    {% elif sheet == 'Credit Cards' %}
+                        <a href="{{ url_for('view_items', item_type='cc') }}" class="text-primary">View all {{ items|length }} items →</a>
+                    {% elif sheet == 'Loans' %}
+                        <a href="{{ url_for('view_items', item_type='loan') }}" class="text-primary">View all {{ items|length }} items →</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            {% else %}
+                <p class="text-muted p-3 mb-0">No items found.</p>
+            {% endif %}
+        </div>
+    </div>
+{% endfor %}
+{% else %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-inbox display-1 text-muted"></i>
+        <h4 class="mt-3">No Data Yet</h4>
+        <p class="text-muted">Start by adding your financial assets using the Quick Add buttons above.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
