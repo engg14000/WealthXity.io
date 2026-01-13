@@ -111,42 +111,65 @@ class ExcelStorage(StorageBackend):
 class InMemoryStorage(StorageBackend):
     """In-memory storage for browser-based persistence via localStorage"""
     
+    # Class-level storage to persist across instances, keyed by browser_id
+    _all_browser_data: Dict[str, Dict[str, pd.DataFrame]] = {}
+    _current_browser_id: Optional[str] = None
+    
     def __init__(self):
-        self._data: Dict[str, pd.DataFrame] = {}
-        self._data['Summary'] = pd.DataFrame()
+        pass
+    
+    def _get_data_store(self) -> Dict[str, pd.DataFrame]:
+        """Get the data store for current browser"""
+        bid = InMemoryStorage._current_browser_id or 'default'
+        if bid not in InMemoryStorage._all_browser_data:
+            InMemoryStorage._all_browser_data[bid] = {'Summary': pd.DataFrame()}
+        return InMemoryStorage._all_browser_data[bid]
+    
+    @classmethod
+    def set_browser_id(cls, browser_id: str):
+        """Set the current browser ID for this request"""
+        cls._current_browser_id = browser_id
+    
+    @classmethod
+    def get_browser_id(cls) -> Optional[str]:
+        """Get the current browser ID"""
+        return cls._current_browser_id
     
     def get_collection_names(self) -> List[str]:
         """Get all collection names"""
-        return list(self._data.keys())
+        return list(self._get_data_store().keys())
     
     def get_data(self, collection_name: str) -> pd.DataFrame:
         """Get data from in-memory store"""
-        return self._data.get(collection_name, pd.DataFrame()).copy()
+        return self._get_data_store().get(collection_name, pd.DataFrame()).copy()
     
     def save_data(self, collection_name: str, df: pd.DataFrame):
         """Save data to in-memory store"""
-        self._data[collection_name] = df.copy()
+        self._get_data_store()[collection_name] = df.copy()
     
     def delete_collection(self, collection_name: str):
         """Delete a collection"""
-        if collection_name in self._data:
-            del self._data[collection_name]
+        store = self._get_data_store()
+        if collection_name in store:
+            del store[collection_name]
     
     def load_all_data(self, data: Dict[str, List[Dict]]):
         """Load all data from a dictionary (from client localStorage)"""
-        self._data = {}
+        bid = InMemoryStorage._current_browser_id or 'default'
+        InMemoryStorage._all_browser_data[bid] = {}
+        store = InMemoryStorage._all_browser_data[bid]
         for collection_name, records in data.items():
             if records:
-                self._data[collection_name] = pd.DataFrame(records)
+                store[collection_name] = pd.DataFrame(records)
             else:
-                self._data[collection_name] = pd.DataFrame()
-        if 'Summary' not in self._data:
-            self._data['Summary'] = pd.DataFrame()
+                store[collection_name] = pd.DataFrame()
+        if 'Summary' not in store:
+            store['Summary'] = pd.DataFrame()
     
     def export_all_data(self) -> Dict[str, List[Dict]]:
         """Export all data as a dictionary (for client localStorage)"""
         result = {}
-        for collection_name, df in self._data.items():
+        for collection_name, df in self._get_data_store().items():
             if not df.empty:
                 records = df.to_dict('records')
                 for record in records:

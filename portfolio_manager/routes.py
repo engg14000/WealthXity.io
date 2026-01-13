@@ -1,6 +1,8 @@
-from flask import render_template, request, redirect, url_for, flash, send_file, jsonify
+from flask import render_template, request, redirect, url_for, flash, send_file, jsonify, make_response
 import json
+import uuid
 from portfolio_manager import app, database
+from portfolio_manager.storage import InMemoryStorage
 from portfolio_manager.models import (
     get_model_class, get_model_fields, get_sheet_name,
     MODEL_DISPLAY_NAMES, MODEL_SHORT_CODES, DEFAULT_RETURNS
@@ -15,6 +17,24 @@ from datetime import datetime
 APP_NAME = "WealthXity"
 APP_TAGLINE = "Your Wealth, Simplified"
 app.secret_key = 'wealthpulse_secret_key_change_in_production'
+BROWSER_ID_COOKIE = 'wealthxity_browser_id'
+
+@app.before_request
+def set_browser_id():
+    """Set browser ID for per-browser data isolation"""
+    browser_id = request.cookies.get(BROWSER_ID_COOKIE)
+    if not browser_id:
+        browser_id = str(uuid.uuid4())
+    InMemoryStorage.set_browser_id(browser_id)
+
+@app.after_request
+def ensure_browser_id_cookie(response):
+    """Ensure browser ID cookie is set"""
+    if BROWSER_ID_COOKIE not in request.cookies:
+        browser_id = InMemoryStorage.get_browser_id()
+        if browser_id:
+            response.set_cookie(BROWSER_ID_COOKIE, browser_id, max_age=365*24*60*60, samesite='Lax')
+    return response
 
 # Make app name available in all templates
 @app.context_processor
@@ -23,7 +43,7 @@ def inject_app_info():
     return {
         'app_name': APP_NAME,
         'app_tagline': APP_TAGLINE,
-        'storage_mode': config.get('storage_mode', 'excel')
+        'storage_mode': config.get('storage_mode', 'browser')
     }
 
 def calculate_portfolio_summary():
