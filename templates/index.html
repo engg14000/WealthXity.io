@@ -9,7 +9,7 @@
         <div class="card summary-card success">
             <div class="card-body">
                 <h6 class="text-white-50">Net Worth</h6>
-                <h3>₹ {{ "{:,.0f}".format(summary.net_worth) }}</h3>
+                <h3 id="net-worth">₹ {{ "{:,.0f}".format(summary.net_worth) }}</h3>
                 <small class="text-white-50">Assets - Liabilities</small>
             </div>
         </div>
@@ -18,7 +18,7 @@
         <div class="card summary-card">
             <div class="card-body">
                 <h6 class="text-white-50">Total Assets</h6>
-                <h3>₹ {{ "{:,.0f}".format(summary.total_assets) }}</h3>
+                <h3 id="total-assets">₹ {{ "{:,.0f}".format(summary.total_assets) }}</h3>
             </div>
         </div>
     </div>
@@ -26,7 +26,7 @@
         <div class="card summary-card danger">
             <div class="card-body">
                 <h6 class="text-white-50">Total Liabilities</h6>
-                <h3>₹ {{ "{:,.0f}".format(summary.total_liabilities) }}</h3>
+                <h3 id="total-liabilities">₹ {{ "{:,.0f}".format(summary.total_liabilities) }}</h3>
             </div>
         </div>
     </div>
@@ -38,7 +38,7 @@
         <div class="card h-100">
             <div class="card-body">
                 <h6 class="text-muted"><i class="bi bi-graph-up-arrow"></i> Mutual Funds</h6>
-                <h4>₹ {{ "{:,.0f}".format(summary.mutual_funds) }}</h4>
+                <h4 id="mf-value">₹ {{ "{:,.0f}".format(summary.mutual_funds) }}</h4>
             </div>
         </div>
     </div>
@@ -46,7 +46,7 @@
         <div class="card h-100">
             <div class="card-body">
                 <h6 class="text-muted"><i class="bi bi-bar-chart"></i> Stocks</h6>
-                <h4>₹ {{ "{:,.0f}".format(summary.stocks) }}</h4>
+                <h4 id="stocks-value">₹ {{ "{:,.0f}".format(summary.stocks) }}</h4>
             </div>
         </div>
     </div>
@@ -54,7 +54,7 @@
         <div class="card h-100">
             <div class="card-body">
                 <h6 class="text-muted"><i class="bi bi-house"></i> Real Estate</h6>
-                <h4>₹ {{ "{:,.0f}".format(summary.real_estate) }}</h4>
+                <h4 id="re-value">₹ {{ "{:,.0f}".format(summary.real_estate) }}</h4>
             </div>
         </div>
     </div>
@@ -62,7 +62,7 @@
         <div class="card h-100">
             <div class="card-body">
                 <h6 class="text-muted"><i class="bi bi-gem"></i> Gold & Silver</h6>
-                <h4>₹ {{ "{:,.0f}".format(summary.gold + summary.silver) }}</h4>
+                <h4 id="gold-silver-value">₹ {{ "{:,.0f}".format(summary.gold + summary.silver) }}</h4>
             </div>
         </div>
     </div>
@@ -70,7 +70,7 @@
         <div class="card h-100">
             <div class="card-body">
                 <h6 class="text-muted"><i class="bi bi-bank"></i> Bank + FD</h6>
-                <h4>₹ {{ "{:,.0f}".format(summary.bank_balance + summary.fixed_deposits) }}</h4>
+                <h4 id="bank-fd-value">₹ {{ "{:,.0f}".format(summary.bank_balance + summary.fixed_deposits) }}</h4>
             </div>
         </div>
     </div>
@@ -78,7 +78,7 @@
         <div class="card h-100">
             <div class="card-body">
                 <h6 class="text-muted"><i class="bi bi-piggy-bank"></i> NPS + PPF + EPF</h6>
-                <h4>₹ {{ "{:,.0f}".format(summary.nps + summary.ppf + summary.epf) }}</h4>
+                <h4 id="retirement-value">₹ {{ "{:,.0f}".format(summary.nps + summary.ppf + summary.epf) }}</h4>
             </div>
         </div>
     </div>
@@ -86,7 +86,7 @@
         <div class="card h-100">
             <div class="card-body">
                 <h6 class="text-muted"><i class="bi bi-shield-check"></i> Insurance Cover</h6>
-                <h4>₹ {{ "{:,.0f}".format(summary.insurance_cover) }}</h4>
+                <h4 id="insurance-value">₹ {{ "{:,.0f}".format(summary.insurance_cover) }}</h4>
             </div>
         </div>
     </div>
@@ -94,7 +94,7 @@
         <div class="card h-100 border-danger">
             <div class="card-body">
                 <h6 class="text-danger"><i class="bi bi-cash-stack"></i> Loans Outstanding</h6>
-                <h4 class="text-danger">₹ {{ "{:,.0f}".format(summary.loans_outstanding) }}</h4>
+                <h4 class="text-danger" id="loans-value">₹ {{ "{:,.0f}".format(summary.loans_outstanding) }}</h4>
             </div>
         </div>
     </div>
@@ -112,12 +112,18 @@
                 <a href="{{ url_for('forecast') }}" class="btn btn-outline-primary me-2 mb-2">
                     <i class="bi bi-lightning"></i> View Forecast
                 </a>
-                <button onclick="updateMFNAV()" class="btn btn-outline-info me-2 mb-2">
+                <button onclick="handleUpdateMFNAV(this)" class="btn btn-outline-info me-2 mb-2">
                     <i class="bi bi-arrow-repeat"></i> Update MF NAVs
                 </button>
-                <a href="{{ url_for('backup_data') }}" class="btn btn-outline-secondary mb-2">
+                {% if storage_mode == 'firebase' %}
+                <a href="{{ url_for('api_export_excel') }}" class="btn btn-outline-secondary mb-2">
                     <i class="bi bi-download"></i> Backup Data
                 </a>
+                {% else %}
+                <button onclick="exportToExcel()" class="btn btn-outline-secondary mb-2">
+                    <i class="bi bi-download"></i> Backup Data
+                </button>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -141,37 +147,18 @@
     </div>
 </div>
 
-<script>
-function updateMFNAV() {
-    const btn = event.target;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Updating...';
-    
-    fetch('/api/update-mf-nav', { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            alert(data.message);
-            if (data.success) location.reload();
-        })
-        .catch(err => alert('Error updating NAVs'))
-        .finally(() => {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Update MF NAVs';
-        });
-}
-</script>
-
-<!-- Recent Data Overview -->
-{% if all_data %}
-<h5 class="mb-3">Portfolio Overview</h5>
-{% for sheet, items in all_data.items() %}
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span><i class="bi bi-list-ul"></i> {{ sheet }}</span>
-            <span class="badge bg-primary">{{ items|length }} items</span>
-        </div>
-        <div class="card-body p-0">
-            {% if items %}
+<!-- Portfolio Overview -->
+<div id="portfolio-overview">
+{% if storage_mode == 'firebase' and all_data %}
+    <h5 class="mb-3">Portfolio Overview</h5>
+    {% for sheet, items in all_data.items() %}
+        {% if sheet != 'Net Worth History' and sheet != 'Summary' and items %}
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-list-ul"></i> {{ sheet }}</span>
+                <span class="badge bg-primary">{{ items|length }} items</span>
+            </div>
+            <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
                         <thead>
@@ -192,37 +179,138 @@ function updateMFNAV() {
                         </tbody>
                     </table>
                 </div>
-                {% if items|length > 3 %}
-                <div class="card-footer text-center">
-                    {% set type_key = sheet.lower().replace(' ', '').replace('accounts', 'account').replace('policies', 'insurance').replace('funds', 'fund').replace('cards', 'card') %}
-                    {% if sheet == 'Mutual Funds' %}
-                        <a href="{{ url_for('view_items', item_type='mf') }}" class="text-primary">View all {{ items|length }} items →</a>
-                    {% elif sheet == 'Bank Accounts' %}
-                        <a href="{{ url_for('view_items', item_type='bank') }}" class="text-primary">View all {{ items|length }} items →</a>
-                    {% elif sheet == 'NPS Accounts' %}
-                        <a href="{{ url_for('view_items', item_type='nps') }}" class="text-primary">View all {{ items|length }} items →</a>
-                    {% elif sheet == 'Insurance Policies' %}
-                        <a href="{{ url_for('view_items', item_type='insurance') }}" class="text-primary">View all {{ items|length }} items →</a>
-                    {% elif sheet == 'Credit Cards' %}
-                        <a href="{{ url_for('view_items', item_type='cc') }}" class="text-primary">View all {{ items|length }} items →</a>
-                    {% elif sheet == 'Loans' %}
-                        <a href="{{ url_for('view_items', item_type='loan') }}" class="text-primary">View all {{ items|length }} items →</a>
-                    {% endif %}
-                </div>
-                {% endif %}
-            {% else %}
-                <p class="text-muted p-3 mb-0">No items found.</p>
-            {% endif %}
+            </div>
         </div>
-    </div>
-{% endfor %}
-{% else %}
-<div class="card">
+        {% endif %}
+    {% endfor %}
+{% endif %}
+</div>
+
+<!-- Empty state (for browser mode, hidden by default) -->
+<div id="empty-state" class="card" style="display: {% if storage_mode == 'firebase' or all_data %}none{% else %}block{% endif %};">
     <div class="card-body text-center py-5">
         <i class="bi bi-inbox display-1 text-muted"></i>
         <h4 class="mt-3">No Data Yet</h4>
         <p class="text-muted">Start by adding your financial assets using the Quick Add buttons above.</p>
     </div>
 </div>
+
+<script>
+const storageMode = '{{ storage_mode }}';
+
+async function handleUpdateMFNAV(btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Updating...';
+    
+    {% if storage_mode == 'firebase' %}
+    // Firebase mode: server handles everything
+    try {
+        const response = await fetch('/api/update-mf-nav', { method: 'POST' });
+        const result = await response.json();
+        alert(result.message || 'Update completed');
+        if (result.success) location.reload();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+    {% else %}
+    // Browser mode: update locally
+    const result = await updateMFNAVs();
+    alert(result.message || 'Update completed');
+    if (result.success) location.reload();
+    {% endif %}
+    
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Update MF NAVs';
+}
+
+{% if storage_mode != 'firebase' %}
+// Browser mode: load data client-side
+async function loadDashboard() {
+    const result = await calculateSummary();
+    if (!result.success) return;
+    
+    const s = result.summary;
+    
+    // Update summary cards
+    document.getElementById('net-worth').textContent = formatCurrency(s.net_worth);
+    document.getElementById('total-assets').textContent = formatCurrency(s.total_assets);
+    document.getElementById('total-liabilities').textContent = formatCurrency(s.total_liabilities);
+    
+    // Update asset breakdown
+    document.getElementById('mf-value').textContent = formatCurrency(s.mutual_funds);
+    document.getElementById('stocks-value').textContent = formatCurrency(s.stocks);
+    document.getElementById('re-value').textContent = formatCurrency(s.real_estate);
+    document.getElementById('gold-silver-value').textContent = formatCurrency(s.gold + s.silver);
+    document.getElementById('bank-fd-value').textContent = formatCurrency(s.bank_balance + s.fixed_deposits);
+    document.getElementById('retirement-value').textContent = formatCurrency(s.nps + s.ppf + s.epf);
+    document.getElementById('insurance-value').textContent = formatCurrency(s.insurance_cover);
+    document.getElementById('loans-value').textContent = formatCurrency(s.loans_outstanding);
+    
+    // Load portfolio overview
+    loadPortfolioOverview();
+}
+
+function loadPortfolioOverview() {
+    const data = getLocalData();
+    const container = document.getElementById('portfolio-overview');
+    const emptyState = document.getElementById('empty-state');
+    
+    const sheets = Object.keys(data).filter(k => k !== 'Summary' && k !== 'Net Worth History' && data[k]?.length > 0);
+    
+    if (sheets.length === 0) {
+        emptyState.style.display = 'block';
+        container.innerHTML = '';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    container.innerHTML = '<h5 class="mb-3">Portfolio Overview</h5>';
+    
+    const typeMap = {
+        'Mutual Funds': 'mf', 'Bank Accounts': 'bank', 'NPS Accounts': 'nps',
+        'Insurance Policies': 'insurance', 'Credit Cards': 'cc', 'Loans': 'loan',
+        'Stocks': 'stock', 'Real Estate': 'realestate', 'Gold': 'gold',
+        'Silver': 'silver', 'Fixed Deposits': 'fd', 'PPF': 'ppf', 'EPF': 'epf'
+    };
+    
+    for (const sheet of sheets) {
+        const items = data[sheet];
+        if (!items || items.length === 0) continue;
+        
+        const keys = Object.keys(items[0]);
+        const itemType = typeMap[sheet] || sheet.toLowerCase().replace(' ', '');
+        
+        let tableRows = items.slice(0, 3).map(item => 
+            `<tr>${keys.map(k => `<td>${item[k] ?? ''}</td>`).join('')}</tr>`
+        ).join('');
+        
+        let viewMoreHtml = items.length > 3 ? `
+            <div class="card-footer text-center">
+                <a href="/view/${itemType}" class="text-primary">View all ${items.length} items</a>
+            </div>` : '';
+        
+        container.innerHTML += `
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-list-ul"></i> ${sheet}</span>
+                    <span class="badge bg-primary">${items.length} items</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>${keys.map(k => `<th>${k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</th>`).join('')}</tr>
+                            </thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                    </div>
+                </div>
+                ${viewMoreHtml}
+            </div>`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', loadDashboard);
 {% endif %}
+</script>
 {% endblock %}

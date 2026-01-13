@@ -43,35 +43,26 @@
         {% if type %}
         <hr>
         <h5 class="mb-4">
-            {% if type == 'mf' %}
-                <i class="bi bi-graph-up-arrow text-primary"></i> Add Mutual Fund
-            {% elif type == 'stock' %}
-                <i class="bi bi-bar-chart text-primary"></i> Add Stock
-            {% elif type == 'realestate' %}
-                <i class="bi bi-house text-primary"></i> Add Real Estate
-            {% elif type == 'gold' %}
-                <i class="bi bi-gem text-primary"></i> Add Gold
-            {% elif type == 'silver' %}
-                <i class="bi bi-coin text-primary"></i> Add Silver
-            {% elif type == 'bank' %}
-                <i class="bi bi-bank text-primary"></i> Add Bank Account
-            {% elif type == 'fd' %}
-                <i class="bi bi-safe2 text-primary"></i> Add Fixed Deposit
-            {% elif type == 'nps' %}
-                <i class="bi bi-piggy-bank text-primary"></i> Add NPS Account
-            {% elif type == 'ppf' %}
-                <i class="bi bi-safe text-primary"></i> Add PPF
-            {% elif type == 'epf' %}
-                <i class="bi bi-briefcase text-primary"></i> Add EPF
-            {% elif type == 'insurance' %}
-                <i class="bi bi-shield-check text-primary"></i> Add Insurance Policy
-            {% elif type == 'cc' %}
-                <i class="bi bi-credit-card text-primary"></i> Add Credit Card
-            {% elif type == 'loan' %}
-                <i class="bi bi-cash-stack text-primary"></i> Add Loan
+            {% if type == 'mf' %}<i class="bi bi-graph-up-arrow text-primary"></i> Add Mutual Fund
+            {% elif type == 'stock' %}<i class="bi bi-bar-chart text-primary"></i> Add Stock
+            {% elif type == 'realestate' %}<i class="bi bi-house text-primary"></i> Add Real Estate
+            {% elif type == 'gold' %}<i class="bi bi-gem text-primary"></i> Add Gold
+            {% elif type == 'silver' %}<i class="bi bi-coin text-primary"></i> Add Silver
+            {% elif type == 'bank' %}<i class="bi bi-bank text-primary"></i> Add Bank Account
+            {% elif type == 'fd' %}<i class="bi bi-safe2 text-primary"></i> Add Fixed Deposit
+            {% elif type == 'nps' %}<i class="bi bi-piggy-bank text-primary"></i> Add NPS Account
+            {% elif type == 'ppf' %}<i class="bi bi-safe text-primary"></i> Add PPF
+            {% elif type == 'epf' %}<i class="bi bi-briefcase text-primary"></i> Add EPF
+            {% elif type == 'insurance' %}<i class="bi bi-shield-check text-primary"></i> Add Insurance Policy
+            {% elif type == 'cc' %}<i class="bi bi-credit-card text-primary"></i> Add Credit Card
+            {% elif type == 'loan' %}<i class="bi bi-cash-stack text-primary"></i> Add Loan
             {% endif %}
         </h5>
-        <form method="POST" action="{{ url_for('add_item') }}">
+        
+        {# Firebase mode uses POST form, Browser mode uses JS #}
+        <form id="add-form" method="{% if storage_mode == 'firebase' %}POST{% else %}GET{% endif %}" 
+              action="{{ url_for('add_item') }}" 
+              {% if storage_mode != 'firebase' %}onsubmit="return handleBrowserSubmit(event)"{% endif %}>
             <input type="hidden" name="type" value="{{ type }}">
             <div class="row">
                 {% for field in fields %}
@@ -214,4 +205,34 @@
         {% endif %}
     </div>
 </div>
+
+{% if type and storage_mode != 'firebase' %}
+<script>
+const typeToSheet = {
+    'mf': 'Mutual Funds', 'stock': 'Stocks', 'realestate': 'Real Estate',
+    'gold': 'Gold', 'silver': 'Silver', 'bank': 'Bank Accounts',
+    'fd': 'Fixed Deposits', 'nps': 'NPS Accounts', 'ppf': 'PPF',
+    'epf': 'EPF', 'insurance': 'Insurance Policies', 'cc': 'Credit Cards', 'loan': 'Loans'
+};
+
+function handleBrowserSubmit(event) {
+    event.preventDefault();
+    
+    const form = document.getElementById('add-form');
+    const formData = new FormData(form);
+    const itemType = formData.get('type');
+    const sheetName = typeToSheet[itemType];
+    
+    const item = {};
+    for (const [key, value] of formData.entries()) {
+        if (key !== 'type') item[key] = value;
+    }
+    
+    addItem(sheetName, item);
+    alert('Item added successfully!');
+    window.location.href = '/view/' + itemType;
+    return false;
+}
+</script>
+{% endif %}
 {% endblock %}

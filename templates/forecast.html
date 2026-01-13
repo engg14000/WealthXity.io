@@ -3,17 +3,17 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="page-title mb-0"><i class="bi bi-lightning"></i> Future Forecast</h1>
-    <form class="d-flex align-items-center">
+    <div class="d-flex align-items-center">
         <label class="me-2">Forecast Years:</label>
-        <select name="years" class="form-select" style="width: auto;" onchange="this.form.submit()">
-            <option value="5" {% if forecast_years == 5 %}selected{% endif %}>5 Years</option>
-            <option value="10" {% if forecast_years == 10 %}selected{% endif %}>10 Years</option>
-            <option value="15" {% if forecast_years == 15 %}selected{% endif %}>15 Years</option>
-            <option value="20" {% if forecast_years == 20 %}selected{% endif %}>20 Years</option>
-            <option value="25" {% if forecast_years == 25 %}selected{% endif %}>25 Years</option>
-            <option value="30" {% if forecast_years == 30 %}selected{% endif %}>30 Years</option>
+        <select id="years-select" class="form-select" style="width: auto;" onchange="loadForecast()">
+            <option value="5">5 Years</option>
+            <option value="10" selected>10 Years</option>
+            <option value="15">15 Years</option>
+            <option value="20">20 Years</option>
+            <option value="25">25 Years</option>
+            <option value="30">30 Years</option>
         </select>
-    </form>
+    </div>
 </div>
 
 <!-- Current vs Future -->
@@ -22,133 +22,183 @@
         <div class="card summary-card">
             <div class="card-body text-center">
                 <h6 class="text-white-50">Current Net Worth</h6>
-                <h2>₹ {{ "{:,.0f}".format(summary.net_worth) }}</h2>
+                <h2 id="current-worth">₹ 0</h2>
             </div>
         </div>
     </div>
     <div class="col-md-6">
         <div class="card summary-card success">
             <div class="card-body text-center">
-                <h6 class="text-white-50">Projected in {{ forecast_years }} Years</h6>
-                {% if projections %}
-                <h2>₹ {{ "{:,.0f}".format(projections[-1].total) }}</h2>
-                {% else %}
-                <h2>₹ 0</h2>
-                {% endif %}
+                <h6 class="text-white-50">Projected in <span id="years-label">10</span> Years</h6>
+                <h2 id="projected-worth">₹ 0</h2>
             </div>
         </div>
     </div>
 </div>
 
-{% if assets %}
-<!-- Asset-wise Expected Returns -->
-<div class="card mb-4">
-    <div class="card-header">
-        <i class="bi bi-percent"></i> Expected Annual Returns (Used for Forecast)
-    </div>
-    <div class="card-body">
-        <div class="row">
-            {% for asset_name, asset_info in assets.items() %}
-            <div class="col-md-4 mb-3">
-                <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
-                    <span>{{ asset_name }}</span>
-                    <span class="badge bg-primary">{{ "%.1f"|format(asset_info.expected_return) }}% p.a.</span>
-                </div>
-            </div>
-            {% endfor %}
+<div id="forecast-content">
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
         </div>
-        <small class="text-muted">
-            <i class="bi bi-info-circle"></i> These returns are based on your asset-level expected returns. 
-            You can update them when editing individual assets.
-        </small>
-    </div>
-</div>
-
-<!-- Forecast Chart -->
-<div class="card mb-4">
-    <div class="card-header">
-        <i class="bi bi-graph-up"></i> Portfolio Growth Projection
-    </div>
-    <div class="card-body">
-        <canvas id="forecastChart" height="100"></canvas>
-    </div>
-</div>
-
-<!-- Year-by-Year Projection Table -->
-<div class="card mb-4">
-    <div class="card-header">
-        <i class="bi bi-table"></i> Year-by-Year Projection
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>Year</th>
-                        {% for asset_name in assets.keys() %}
-                        <th class="text-end">{{ asset_name }}</th>
-                        {% endfor %}
-                        <th class="text-end">Total</th>
-                        <th class="text-end">Growth</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for proj in projections %}
-                    <tr {% if loop.last %}class="table-success fw-bold"{% endif %}>
-                        <td>{{ proj.year }} {% if proj.year == 0 %}(Now){% endif %}</td>
-                        {% for asset_name in assets.keys() %}
-                        <td class="text-end">₹ {{ "{:,.0f}".format(proj[asset_name]) }}</td>
-                        {% endfor %}
-                        <td class="text-end">₹ {{ "{:,.0f}".format(proj.total) }}</td>
-                        <td class="text-end">
-                            {% if proj.year > 0 %}
-                            <span class="text-success">+{{ "{:,.0f}".format(proj.total - projections[0].total) }}</span>
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- Growth Multiplier -->
-<div class="card">
-    <div class="card-header">
-        <i class="bi bi-calculator"></i> Growth Summary
-    </div>
-    <div class="card-body">
-        <div class="row text-center">
-            <div class="col-md-4">
-                <h4 class="text-primary">{{ "%.1f"|format(projections[-1].total / projections[0].total if projections[0].total > 0 else 0) }}x</h4>
-                <p class="text-muted mb-0">Growth Multiplier</p>
-            </div>
-            <div class="col-md-4">
-                <h4 class="text-success">₹ {{ "{:,.0f}".format(projections[-1].total - projections[0].total if projections else 0) }}</h4>
-                <p class="text-muted mb-0">Absolute Growth</p>
-            </div>
-            <div class="col-md-4">
-                {% set cagr = ((projections[-1].total / projections[0].total) ** (1/forecast_years) - 1) * 100 if projections and projections[0].total > 0 else 0 %}
-                <h4 class="text-warning">{{ "%.1f"|format(cagr) }}%</h4>
-                <p class="text-muted mb-0">Portfolio CAGR</p>
-            </div>
-        </div>
+        <p class="mt-2">Calculating forecast...</p>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const ctx = document.getElementById('forecastChart').getContext('2d');
-    const projections = {{ projections|tojson }};
-    const assetNames = {{ assets.keys()|list|tojson }};
+let chartInstance = null;
+
+async function loadForecast() {
+    const years = parseInt(document.getElementById('years-select').value);
+    document.getElementById('years-label').textContent = years;
     
-    const colors = [
-        '#3498db', '#27ae60', '#e74c3c', '#f39c12', '#9b59b6', 
-        '#1abc9c', '#e67e22', '#34495e', '#16a085', '#c0392b'
-    ];
+    const result = await calculateForecast(years);
+    
+    if (!result.success) {
+        document.getElementById('forecast-content').innerHTML = `
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-exclamation-triangle display-1 text-warning"></i>
+                    <h4 class="mt-3">Error Loading Forecast</h4>
+                    <p class="text-muted">${result.message || 'Unknown error'}</p>
+                </div>
+            </div>`;
+        return;
+    }
+    
+    const { summary, assets, projections } = result;
+    
+    document.getElementById('current-worth').textContent = formatCurrency(summary.net_worth);
+    
+    if (!projections || projections.length === 0 || Object.keys(assets).length === 0) {
+        document.getElementById('projected-worth').textContent = '₹ 0';
+        document.getElementById('forecast-content').innerHTML = `
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-lightning display-1 text-muted"></i>
+                    <h4 class="mt-3">No Assets to Forecast</h4>
+                    <p class="text-muted">Add some investments to see your future portfolio projections.</p>
+                    <a href="/add" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add Assets
+                    </a>
+                </div>
+            </div>`;
+        return;
+    }
+    
+    const finalTotal = projections[projections.length - 1].total;
+    const initialTotal = projections[0].total;
+    document.getElementById('projected-worth').textContent = formatCurrency(finalTotal);
+    
+    // Build asset returns section
+    const assetNames = Object.keys(assets);
+    const assetReturnsHtml = assetNames.map(name => `
+        <div class="col-md-4 mb-3">
+            <div class="d-flex justify-content-between align-items-center p-3 bg-light rounded">
+                <span>${name}</span>
+                <span class="badge bg-primary">${assets[name].expected_return.toFixed(1)}% p.a.</span>
+            </div>
+        </div>
+    `).join('');
+    
+    // Build projection table rows
+    const tableRows = projections.map((proj, idx) => {
+        const isLast = idx === projections.length - 1;
+        const assetCells = assetNames.map(name => 
+            `<td class="text-end">₹ ${Number(proj[name] || 0).toLocaleString('en-IN', {maximumFractionDigits: 0})}</td>`
+        ).join('');
+        const growth = proj.year > 0 ? `<span class="text-success">+${Number(proj.total - initialTotal).toLocaleString('en-IN', {maximumFractionDigits: 0})}</span>` : '-';
+        
+        return `
+            <tr ${isLast ? 'class="table-success fw-bold"' : ''}>
+                <td>${proj.year} ${proj.year === 0 ? '(Now)' : ''}</td>
+                ${assetCells}
+                <td class="text-end">₹ ${Number(proj.total).toLocaleString('en-IN', {maximumFractionDigits: 0})}</td>
+                <td class="text-end">${growth}</td>
+            </tr>`;
+    }).join('');
+    
+    // Calculate growth metrics
+    const multiplier = initialTotal > 0 ? (finalTotal / initialTotal).toFixed(1) : 0;
+    const absoluteGrowth = finalTotal - initialTotal;
+    const cagr = initialTotal > 0 ? ((Math.pow(finalTotal / initialTotal, 1 / years) - 1) * 100).toFixed(1) : 0;
+    
+    document.getElementById('forecast-content').innerHTML = `
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-percent"></i> Expected Annual Returns (Used for Forecast)
+            </div>
+            <div class="card-body">
+                <div class="row">${assetReturnsHtml}</div>
+                <small class="text-muted">
+                    <i class="bi bi-info-circle"></i> These returns are based on your asset-level expected returns. 
+                    You can update them when editing individual assets.
+                </small>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-graph-up"></i> Portfolio Growth Projection
+            </div>
+            <div class="card-body">
+                <canvas id="forecastChart" height="100"></canvas>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-table"></i> Year-by-Year Projection
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Year</th>
+                                ${assetNames.map(n => `<th class="text-end">${n}</th>`).join('')}
+                                <th class="text-end">Total</th>
+                                <th class="text-end">Growth</th>
+                            </tr>
+                        </thead>
+                        <tbody>${tableRows}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-calculator"></i> Growth Summary
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <h4 class="text-primary">${multiplier}x</h4>
+                        <p class="text-muted mb-0">Growth Multiplier</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h4 class="text-success">${formatCurrency(absoluteGrowth)}</h4>
+                        <p class="text-muted mb-0">Absolute Growth</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h4 class="text-warning">${cagr}%</h4>
+                        <p class="text-muted mb-0">Portfolio CAGR</p>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    
+    // Render chart
+    renderChart(projections, assetNames);
+}
+
+function renderChart(projections, assetNames) {
+    const ctx = document.getElementById('forecastChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
+    
+    const colors = ['#3498db', '#27ae60', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e', '#16a085', '#c0392b'];
     
     const datasets = assetNames.map((name, idx) => ({
         label: name,
@@ -158,7 +208,7 @@
         borderWidth: 1
     }));
     
-    new Chart(ctx, {
+    chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: projections.map(p => 'Year ' + p.year),
@@ -166,9 +216,7 @@
         },
         options: {
             responsive: true,
-            plugins: {
-                legend: { position: 'top' }
-            },
+            plugins: { legend: { position: 'top' } },
             scales: {
                 x: { stacked: true },
                 y: { 
@@ -184,18 +232,8 @@
             }
         }
     });
-</script>
+}
 
-{% else %}
-<div class="card">
-    <div class="card-body text-center py-5">
-        <i class="bi bi-lightning display-1 text-muted"></i>
-        <h4 class="mt-3">No Assets to Forecast</h4>
-        <p class="text-muted">Add some investments to see your future portfolio projections.</p>
-        <a href="{{ url_for('add_item') }}" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Add Assets
-        </a>
-    </div>
-</div>
-{% endif %}
+document.addEventListener('DOMContentLoaded', loadForecast);
+</script>
 {% endblock %}

@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 class="page-title"><i class="bi bi-shield-check"></i> Privacy Policy</h1>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <p class="lead">At <strong>{{ app_name }}</strong>, your privacy is our top priority. We are committed to protecting your personal and financial data.</p>
+        
+        <div class="alert alert-success">
+            <i class="bi bi-check-circle-fill"></i>
+            <strong>We do NOT collect, store, or transmit your personal or financial data to any external servers.</strong>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-hdd"></i> How Your Data is Stored
+    </div>
+    <div class="card-body">
+        <h5 class="text-primary"><i class="bi bi-browser-chrome"></i> Local Storage Mode (Default)</h5>
+        <ul>
+            <li><strong>Your data stays on YOUR device</strong> - All portfolio data is stored exclusively in your web browser's localStorage.</li>
+            <li><strong>No server transmission</strong> - In local mode, your data never leaves your browser. The backend only performs calculations when you request them, using data you send in each request.</li>
+            <li><strong>Stateless architecture</strong> - Our server does not store any user data. Each calculation request is independent and your data is not retained.</li>
+            <li><strong>Browser-specific</strong> - Your data is tied to the specific browser on your device. Clearing browser data will remove your portfolio data.</li>
+            <li><strong>Export for backup</strong> - We recommend regularly exporting your data to Excel for backup purposes.</li>
+        </ul>
+        
+        <hr>
+        
+        <h5 class="text-primary"><i class="bi bi-cloud"></i> Firebase Cloud Mode (Optional)</h5>
+        <ul>
+            <li><strong>Your own Firebase account</strong> - If you choose Firebase mode, data is stored in YOUR personal Firebase Firestore database using YOUR credentials.</li>
+            <li><strong>You control the data</strong> - We do not have access to your Firebase project or data. You provide your own service account credentials.</li>
+            <li><strong>Direct connection</strong> - The app connects directly to your Firebase project; we act only as an interface.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-shield-lock"></i> What We Do NOT Do
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-x-circle text-danger"></i> We do NOT collect personal information</li>
+                    <li><i class="bi bi-x-circle text-danger"></i> We do NOT track your financial data</li>
+                    <li><i class="bi bi-x-circle text-danger"></i> We do NOT store data on our servers</li>
+                    <li><i class="bi bi-x-circle text-danger"></i> We do NOT sell or share any data</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-x-circle text-danger"></i> We do NOT use cookies for tracking</li>
+                    <li><i class="bi bi-x-circle text-danger"></i> We do NOT have analytics or telemetry</li>
+                    <li><i class="bi bi-x-circle text-danger"></i> We do NOT require account registration</li>
+                    <li><i class="bi bi-x-circle text-danger"></i> We do NOT have access to your passwords</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-globe"></i> Third-Party Services
+    </div>
+    <div class="card-body">
+        <p>{{ app_name }} may connect to the following external APIs for real-time data (optional features):</p>
+        <ul>
+            <li><strong>MFAPI.in</strong> - For fetching mutual fund NAV data (Indian mutual funds)</li>
+            <li><strong>Metals.live</strong> - For fetching current gold and silver prices</li>
+        </ul>
+        <p class="text-muted small">These API calls only fetch public market data and do not transmit any of your personal or portfolio information.</p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-info-circle"></i> Your Responsibilities
+    </div>
+    <div class="card-body">
+        <ul>
+            <li><strong>Backup your data</strong> - Since data is stored locally, please export to Excel regularly.</li>
+            <li><strong>Secure your device</strong> - Ensure your device and browser are secure to protect your data.</li>
+            <li><strong>Firebase credentials</strong> - If using Firebase mode, keep your service account credentials secure and never share them.</li>
+        </ul>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-envelope"></i> Contact
+    </div>
+    <div class="card-body">
+        <p>If you have any questions about this privacy policy or our data practices, please reach out to us.</p>
+        <p class="text-muted small">Last updated: January 2026</p>
+    </div>
+</div>
+{% endblock %}
