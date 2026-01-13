@@ -2,8 +2,10 @@
 API Services for fetching live prices of various assets
 """
 import requests
+import re
 from typing import Optional, Dict, List
 from datetime import datetime
+from bs4 import BeautifulSoup
 
 # MFAPI.in - Free Indian Mutual Fund API
 MFAPI_BASE_URL = "https://api.mfapi.in"
@@ -91,54 +93,97 @@ def update_all_mutual_fund_navs(funds_data: List[Dict]) -> List[Dict]:
         updated_funds.append(fund)
     return updated_funds
 
-# Gold price API (using a free API)
+# Metal prices from Thangamayil (Indian jeweller with live rates)
+def get_metal_rates() -> Dict:
+    """
+    Fetch live gold and silver rates from thangamayil.com
+    
+    Returns:
+        Dictionary with gold_22k, gold_24k, gold_18k, silver prices in INR per gram
+    """
+    rates = {
+        'gold_22k': None,
+        'gold_24k': None,
+        'gold_18k': None,
+        'silver': None,
+        'last_updated': None
+    }
+    
+    try:
+        url = 'https://www.thangamayil.com/scheme/index/rateshistory/'
+        response = requests.get(url, timeout=10, verify=False)
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Extract rates from the marquee tag
+        marquee = soup.find('div', id='board-rates')
+        if marquee:
+            text = marquee.get_text()
+            gold_22k_match = re.search(r'GOLD RATE 22k \(1gm\) - ₹(\d+)', text)
+            if gold_22k_match:
+                rates['gold_22k'] = int(gold_22k_match.group(1))
+        
+        # Extract rates from the list items
+        rates_list = soup.find('ul', class_='rates-list')
+        if rates_list:
+            for li in rates_list.find_all('li'):
+                li_text = li.get_text()
+                price_span = li.find('span', class_='price')
+                if price_span:
+                    price_text = price_span.get_text().strip('₹').replace(',', '')
+                    try:
+                        price = int(float(price_text))
+                        if 'Gold 18k' in li_text:
+                            rates['gold_18k'] = price
+                        elif 'Gold 24k' in li_text:
+                            rates['gold_24k'] = price
+                        elif 'Silver' in li_text:
+                            rates['silver'] = price
+                    except ValueError:
+                        pass
+        
+        # Extract last updated time
+        last_updated_div = soup.find('div', class_='card-header')
+        if last_updated_div:
+            last_updated_text = last_updated_div.get_text()
+            last_updated_match = re.search(r'Last updated on : ([\d/ :AMP]+)', last_updated_text)
+            if last_updated_match:
+                rates['last_updated'] = last_updated_match.group(1)
+        
+    except Exception as e:
+        print(f"Error fetching metal rates: {e}")
+    
+    return rates
+
+
 def get_gold_price() -> Optional[Dict]:
     """
     Fetch current gold price in INR per gram
-    Note: This uses a free API with limited requests
     """
-    try:
-        # Using metals.live API (free tier)
-        url = "https://www.metals.live/api/v1/spot/gold"
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            # Convert from USD/oz to INR/gram (approximate)
-            usd_per_oz = float(data[0].get('price', 0))
-            # Get USD to INR rate (approximate, you can use another API)
-            usd_to_inr = 83.0  # Approximate rate
-            gram_per_oz = 31.1035
-            inr_per_gram = (usd_per_oz * usd_to_inr) / gram_per_oz
-            return {
-                'price_per_gram_24k': round(inr_per_gram, 2),
-                'price_per_gram_22k': round(inr_per_gram * 0.9167, 2),
-                'currency': 'INR',
-                'timestamp': datetime.now().isoformat()
-            }
-    except Exception as e:
-        print(f"Error fetching gold price: {e}")
+    rates = get_metal_rates()
+    if rates.get('gold_24k') or rates.get('gold_22k'):
+        return {
+            'price_per_gram_24k': rates.get('gold_24k'),
+            'price_per_gram_22k': rates.get('gold_22k'),
+            'price_per_gram_18k': rates.get('gold_18k'),
+            'currency': 'INR',
+            'last_updated': rates.get('last_updated'),
+            'timestamp': datetime.now().isoformat()
+        }
     return None
+
 
 def get_silver_price() -> Optional[Dict]:
     """
     Fetch current silver price in INR per gram
     """
-    try:
-        url = "https://www.metals.live/api/v1/spot/silver"
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            usd_per_oz = float(data[0].get('price', 0))
-            usd_to_inr = 83.0
-            gram_per_oz = 31.1035
-            inr_per_gram = (usd_per_oz * usd_to_inr) / gram_per_oz
-            return {
-                'price_per_gram': round(inr_per_gram, 2),
-                'currency': 'INR',
-                'timestamp': datetime.now().isoformat()
-            }
-    except Exception as e:
-        print(f"Error fetching silver price: {e}")
+    rates = get_metal_rates()
+    if rates.get('silver'):
+        return {
+            'price_per_gram': rates.get('silver'),
+            'currency': 'INR',
+            'last_updated': rates.get('last_updated'),
+            'timestamp': datetime.now().isoformat()
+        }
     return None
 
 def calculate_future_value(present_value: float, annual_return: float, years: int) -> float:

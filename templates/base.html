@@ -387,6 +387,30 @@
         }
     }
     
+    async function updateMetalPrices() {
+        const gold = getSheetData('Gold');
+        const silver = getSheetData('Silver');
+        if (!gold.length && !silver.length) {
+            return { success: false, message: 'No gold or silver holdings found' };
+        }
+        try {
+            const response = await fetch('/api/update-metal-prices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gold, silver })
+            });
+            const result = await response.json();
+            if (result.success) {
+                if (result.gold) saveSheetData('Gold', result.gold);
+                if (result.silver) saveSheetData('Silver', result.silver);
+            }
+            return result;
+        } catch (err) {
+            console.error('Update metal prices error:', err);
+            return { success: false, message: err.message };
+        }
+    }
+    
     async function exportToExcel() {
         const data = getLocalData();
         try {

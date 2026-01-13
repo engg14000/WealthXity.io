@@ -3,4 +3,5 @@ openpyxl
 typer[all]
 Flask
 requests
+beautifulsoup4
 firebase-admin  # Optional: Only needed for Firebase storage mode
