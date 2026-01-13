@@ -1,6 +1,6 @@
 """
 Storage abstraction layer for WealthPulse
-Supports: Excel (local) and Firebase Firestore (cloud)
+Supports: Excel (local), Firebase Firestore (cloud), and In-Memory (browser-based)
 """
 import pandas as pd
 import os
@@ -18,7 +18,7 @@ def get_config() -> Dict:
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'r') as f:
             return json.load(f)
-    return {'storage_mode': 'excel', 'firebase_config': {}}
+    return {'storage_mode': 'browser', 'firebase_config': {}}
 
 def save_config(config: Dict):
     """Save configuration to file"""
@@ -107,6 +107,57 @@ class ExcelStorage(StorageBackend):
             with pd.ExcelWriter(self.file_path, engine='openpyxl') as writer:
                 for sheet, data in all_data.items():
                     data.to_excel(writer, sheet_name=sheet, index=False)
+
+class InMemoryStorage(StorageBackend):
+    """In-memory storage for browser-based persistence via localStorage"""
+    
+    def __init__(self):
+        self._data: Dict[str, pd.DataFrame] = {}
+        self._data['Summary'] = pd.DataFrame()
+    
+    def get_collection_names(self) -> List[str]:
+        """Get all collection names"""
+        return list(self._data.keys())
+    
+    def get_data(self, collection_name: str) -> pd.DataFrame:
+        """Get data from in-memory store"""
+        return self._data.get(collection_name, pd.DataFrame()).copy()
+    
+    def save_data(self, collection_name: str, df: pd.DataFrame):
+        """Save data to in-memory store"""
+        self._data[collection_name] = df.copy()
+    
+    def delete_collection(self, collection_name: str):
+        """Delete a collection"""
+        if collection_name in self._data:
+            del self._data[collection_name]
+    
+    def load_all_data(self, data: Dict[str, List[Dict]]):
+        """Load all data from a dictionary (from client localStorage)"""
+        self._data = {}
+        for collection_name, records in data.items():
+            if records:
+                self._data[collection_name] = pd.DataFrame(records)
+            else:
+                self._data[collection_name] = pd.DataFrame()
+        if 'Summary' not in self._data:
+            self._data['Summary'] = pd.DataFrame()
+    
+    def export_all_data(self) -> Dict[str, List[Dict]]:
+        """Export all data as a dictionary (for client localStorage)"""
+        result = {}
+        for collection_name, df in self._data.items():
+            if not df.empty:
+                records = df.to_dict('records')
+                for record in records:
+                    for k, v in record.items():
+                        if pd.isna(v):
+                            record[k] = None
+                result[collection_name] = records
+            else:
+                result[collection_name] = []
+        return result
+
 
 class FirebaseStorage(StorageBackend):
     """Firebase Firestore cloud storage"""
@@ -206,16 +257,16 @@ def get_storage() -> StorageBackend:
     
     if _storage_instance is None:
         config = get_config()
-        storage_mode = config.get('storage_mode', 'excel')
+        storage_mode = config.get('storage_mode', 'browser')
         
         if storage_mode == 'firebase':
             try:
                 _storage_instance = FirebaseStorage(config.get('firebase_config', {}))
             except Exception as e:
-                print(f"Firebase initialization failed: {e}. Falling back to Excel.")
-                _storage_instance = ExcelStorage()
+                print(f"Firebase initialization failed: {e}. Falling back to browser storage.")
+                _storage_instance = InMemoryStorage()
         else:
-            _storage_instance = ExcelStorage()
+            _storage_instance = InMemoryStorage()
     
     return _storage_instance
 
@@ -277,3 +328,35 @@ def import_from_excel(file_path: str):
 
 # For backward compatibility
 DATA_FILE = DATA_FILE
+
+# Browser storage helper functions
+def load_browser_data(data: Dict[str, List[Dict]]):
+    """Load data from browser localStorage into the in-memory storage"""
+    storage = get_storage()
+    if isinstance(storage, InMemoryStorage):
+        storage.load_all_data(data)
+
+def export_browser_data() -> Dict[str, List[Dict]]:
+    """Export all data for browser localStorage"""
+    storage = get_storage()
+    if isinstance(storage, InMemoryStorage):
+        return storage.export_all_data()
+    # For non-InMemory storage, build export from storage
+    result = {}
+    for collection in storage.get_collection_names():
+        df = storage.get_data(collection)
+        if not df.empty:
+            records = df.to_dict('records')
+            for record in records:
+                for k, v in record.items():
+                    if pd.isna(v):
+                        record[k] = None
+            result[collection] = records
+        else:
+            result[collection] = []
+    return result
+
+def is_browser_storage() -> bool:
+    """Check if browser storage mode is active"""
+    config = get_config()
+    return config.get('storage_mode') == 'browser'

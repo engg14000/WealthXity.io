@@ -1,17 +1,18 @@
 from flask import render_template, request, redirect, url_for, flash, send_file, jsonify
+import json
 from portfolio_manager import app, database
 from portfolio_manager.models import (
     get_model_class, get_model_fields, get_sheet_name,
     MODEL_DISPLAY_NAMES, MODEL_SHORT_CODES, DEFAULT_RETURNS
 )
 from portfolio_manager import api_services
-from portfolio_manager.storage import get_config, save_config, set_storage_mode, export_to_excel, import_from_excel
+from portfolio_manager.storage import get_config, save_config, set_storage_mode, export_to_excel, import_from_excel, load_browser_data, export_browser_data, is_browser_storage
 import pandas as pd
 import os
 from datetime import datetime
 
 # App Configuration
-APP_NAME = "Wealthily"
+APP_NAME = "WealthXity"
 APP_TAGLINE = "Your Wealth, Simplified"
 app.secret_key = 'wealthpulse_secret_key_change_in_production'
 
@@ -489,7 +490,7 @@ def settings():
 @app.route('/settings/storage', methods=['POST'])
 def update_storage_settings():
     """Update storage mode settings"""
-    storage_mode = request.form.get('storage_mode', 'excel')
+    storage_mode = request.form.get('storage_mode', 'browser')
     
     if storage_mode == 'firebase':
         # Get Firebase configuration
@@ -502,7 +503,6 @@ def update_storage_settings():
         if 'firebase_service_account_file' in request.files:
             file = request.files['firebase_service_account_file']
             if file and file.filename.endswith('.json'):
-                import json
                 firebase_config['service_account_json'] = json.load(file)
         
         try:
@@ -510,10 +510,10 @@ def update_storage_settings():
             flash('Storage mode switched to Firebase Firestore!', 'success')
         except Exception as e:
             flash(f'Failed to connect to Firebase: {str(e)}', 'error')
-            set_storage_mode('excel')
+            set_storage_mode('browser')
     else:
-        set_storage_mode('excel')
-        flash('Storage mode switched to Excel (Local)!', 'success')
+        set_storage_mode('browser')
+        flash('Storage mode switched to Browser (localStorage)!', 'success')
     
     return redirect(url_for('settings'))
 
@@ -590,6 +590,101 @@ def sync_to_firebase():
         flash(f'Sync failed: {str(e)}', 'error')
     
     return redirect(url_for('settings'))
+
+
+# Browser Storage API Endpoints
+@app.route('/api/sync-data', methods=['POST'])
+def sync_data_from_browser():
+    """Receive data from browser localStorage and load into memory"""
+    try:
+        data = request.get_json()
+        if data:
+            load_browser_data(data)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/get-data')
+def get_all_data_for_browser():
+    """Export all data for browser localStorage"""
+    try:
+        data = export_browser_data()
+        return jsonify({'success': True, 'data': data})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/export-excel')
+def export_excel_api():
+    """Export all data as downloadable Excel file"""
+    try:
+        import io
+        from openpyxl import Workbook
+        
+        output = io.BytesIO()
+        
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            sheet_names = database.get_sheet_names()
+            for sheet in sheet_names:
+                df = database.get_data(sheet)
+                if not df.empty:
+                    df.to_excel(writer, sheet_name=sheet, index=False)
+                else:
+                    pd.DataFrame().to_excel(writer, sheet_name=sheet, index=False)
+            
+            if not sheet_names or len(sheet_names) == 0:
+                pd.DataFrame().to_excel(writer, sheet_name='Summary', index=False)
+        
+        output.seek(0)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f'wealthily_backup_{timestamp}.xlsx',
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+    except Exception as e:
+        flash(f'Export failed: {str(e)}', 'error')
+        return redirect(url_for('settings'))
+
+
+@app.route('/api/import-excel', methods=['POST'])
+def import_excel_api():
+    """Import data from Excel file"""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'message': 'No file uploaded'})
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No file selected'})
+    
+    if file and file.filename.endswith('.xlsx'):
+        try:
+            wb = pd.ExcelFile(file)
+            all_data = {}
+            
+            for sheet_name in wb.sheet_names:
+                df = pd.read_excel(wb, sheet_name=sheet_name)
+                database.save_data(sheet_name, df)
+                
+                if not df.empty:
+                    records = df.to_dict('records')
+                    for record in records:
+                        for k, v in record.items():
+                            if pd.isna(v):
+                                record[k] = None
+                    all_data[sheet_name] = records
+                else:
+                    all_data[sheet_name] = []
+            
+            return jsonify({'success': True, 'message': 'Data imported successfully', 'data': all_data})
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)})
+    
+    return jsonify({'success': False, 'message': 'Please upload a valid Excel (.xlsx) file'})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
