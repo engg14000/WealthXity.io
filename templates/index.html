@@ -115,6 +115,9 @@
                 <button onclick="handleUpdateMFNAV(this)" class="btn btn-outline-info me-2 mb-2">
                     <i class="bi bi-arrow-repeat"></i> Update MF NAVs
                 </button>
+                <button onclick="handleUpdateMetalPrices(this)" class="btn btn-outline-warning me-2 mb-2">
+                    <i class="bi bi-gem"></i> Update Metal Prices
+                </button>
                 {% if storage_mode == 'firebase' %}
                 <a href="{{ url_for('api_export_excel') }}" class="btn btn-outline-secondary mb-2">
                     <i class="bi bi-download"></i> Backup Data
@@ -221,6 +224,31 @@ async function handleUpdateMFNAV(btn) {
     
     btn.disabled = false;
     btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Update MF NAVs';
+}
+
+async function handleUpdateMetalPrices(btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Updating...';
+    
+    {% if storage_mode == 'firebase' %}
+    // Firebase mode: server handles everything
+    try {
+        const response = await fetch('/api/update-metal-prices', { method: 'POST' });
+        const result = await response.json();
+        alert(result.message || 'Update completed');
+        if (result.success) location.reload();
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+    {% else %}
+    // Browser mode: update locally
+    const result = await updateMetalPrices();
+    alert(result.message || 'Update completed');
+    if (result.success) location.reload();
+    {% endif %}
+    
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-gem"></i> Update Metal Prices';
 }
 
 {% if storage_mode != 'firebase' %}
