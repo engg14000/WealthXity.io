@@ -112,34 +112,13 @@ Data is stored locally in `data/wealthily.xlsx`. No configuration needed.
 | `FLASK_DEBUG` | Debug mode | `False` |
 | `PORT` | Server port | `5001` |
 
-## Project Structure
+### Screen Shots
+<img width="945" height="443" alt="image" src="https://github.com/user-attachments/assets/69d4cb3f-9d0c-497c-96f9-ff5dd9672969" />
+<img width="943" height="443" alt="image" src="https://github.com/user-attachments/assets/4305a274-b4af-4641-9cca-94352471cada" />
+<img width="940" height="443" alt="image" src="https://github.com/user-attachments/assets/62eb4d30-349a-42f5-977a-fc5461c2aa4b" />
 
-```
-wealthily/
-├── portfolio_manager/
-│   ├── __init__.py       # Flask app initialization
-│   ├── routes.py         # All Flask routes
-│   ├── models.py         # Data models (dataclasses)
-│   ├── database.py       # Database interface
-│   ├── storage.py        # Storage abstraction (Excel/Firebase)
-│   └── api_services.py   # External API integrations
-├── templates/
-│   ├── base.html         # Base template with navigation
-│   ├── index.html        # Dashboard
-│   ├── add.html          # Add new asset
-│   ├── edit.html         # Edit asset
-│   ├── view.html         # View assets list
-│   ├── networth.html     # Net worth tracker
-│   ├── forecast.html     # Future projections
-│   ├── settings.html     # App settings
-│   └── import.html       # Import data
-├── data/                 # Data storage directory
-├── run.py               # Application entry point
-├── requirements.txt     # Python dependencies
-├── Dockerfile          # Docker configuration
-├── docker-compose.yml  # Docker Compose configuration
-└── README.md           # This file
-```
+
+
 
 ## API Integrations
 
