@@ -12,7 +12,10 @@ from portfolio_manager.storage import (
     set_storage_mode,
     get_config,
     save_config,
-    DATA_FILE
+    DATA_FILE,
+    load_browser_data,
+    export_browser_data,
+    is_browser_storage
 )
 
 # Re-export all functions for backward compatibility
@@ -26,6 +29,9 @@ __all__ = [
     'set_storage_mode',
     'get_config',
     'save_config',
-    'DATA_FILE'
+    'DATA_FILE',
+    'load_browser_data',
+    'export_browser_data',
+    'is_browser_storage'
 ]
 
