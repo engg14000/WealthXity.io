@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  wealthily:
+    build: .
+    container_name: wealthily
+    ports:
+      - "5001:5001"
+    volumes:
+      - wealthily_data:/app/data
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+volumes:
+  wealthily_data:
+    driver: local

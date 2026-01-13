@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="page-title mb-0"><i class="bi bi-pencil-square"></i> Edit Item</h1>
+    <a href="{{ url_for('view_items', item_type=item_type) }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="row">
+                {% for field, value in item.items() %}
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ field }}" class="form-label">{{ field.replace('_', ' ')|title }}</label>
+                        {% if 'date' in field %}
+                            <input type="date" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
+                        {% elif 'balance' in field or 'amount' in field or 'price' in field or 'nav' in field or 'limit' in field or 'assured' in field or 'premium' in field or 'rate' in field or 'emi' in field or 'points' in field or 'units' in field %}
+                            <input type="number" step="0.01" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
+                        {% elif 'tenure' in field or 'months' in field or 'billing' in field or 'due' in field %}
+                            <input type="number" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
+                        {% else %}
+                            <input type="text" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle"></i> Update Item
+                </button>
+                <a href="{{ url_for('view_items', item_type=item_type) }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

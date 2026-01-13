@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 class="page-title"><i class="bi bi-gear"></i> Settings</h1>
+
+<div class="row">
+    <!-- Storage Settings -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-database"></i> Data Storage
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">Choose where to store your financial data:</p>
+                
+                <form action="{{ url_for('update_storage_settings') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="storage_mode" id="storage_excel" 
+                                   value="excel" {% if config.storage_mode != 'firebase' %}checked{% endif %}
+                                   onchange="toggleFirebaseSettings()">
+                            <label class="form-check-label" for="storage_excel">
+                                <i class="bi bi-file-earmark-excel text-success"></i> 
+                                <strong>Excel (Local)</strong>
+                                <br><small class="text-muted">Data stored locally in Excel file. Easy to backup and share.</small>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="storage_mode" id="storage_firebase" 
+                                   value="firebase" {% if config.storage_mode == 'firebase' %}checked{% endif %}
+                                   onchange="toggleFirebaseSettings()">
+                            <label class="form-check-label" for="storage_firebase">
+                                <i class="bi bi-cloud text-primary"></i> 
+                                <strong>Firebase Firestore (Cloud)</strong>
+                                <br><small class="text-muted">Data stored in Google Cloud. Access from anywhere.</small>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Firebase Configuration -->
+                    <div id="firebase-settings" style="display: {% if config.storage_mode == 'firebase' %}block{% else %}none{% endif %};">
+                        <hr>
+                        <h6 class="mb-3">Firebase Configuration</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Service Account JSON File</label>
+                            <input type="file" class="form-control" name="firebase_service_account_file" accept=".json">
+                            <small class="text-muted">Upload your Firebase service account key JSON file</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Or Service Account Path</label>
+                            <input type="text" class="form-control" name="firebase_service_account_path" 
+                                   value="{{ config.firebase_config.service_account_path if config.firebase_config else '' }}"
+                                   placeholder="/path/to/serviceAccountKey.json">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">User ID</label>
+                            <input type="text" class="form-control" name="firebase_user_id" 
+                                   value="{{ config.firebase_config.user_id if config.firebase_config else 'default_user' }}"
+                                   placeholder="your_user_id">
+                            <small class="text-muted">Unique identifier for your data in Firestore</small>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Save Storage Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Import/Export -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-arrow-left-right"></i> Import / Export Data
+            </div>
+            <div class="card-body">
+                <h6 class="mb-3">Export to Excel</h6>
+                <p class="text-muted">Download all your data as an Excel file for backup or migration.</p>
+                <a href="{{ url_for('export_data_excel') }}" class="btn btn-success mb-4">
+                    <i class="bi bi-download"></i> Export to Excel
+                </a>
+                
+                <hr>
+                
+                <h6 class="mb-3">Import from Excel</h6>
+                <p class="text-muted">Import data from a previously exported Excel file.</p>
+                <form action="{{ url_for('import_data_excel') }}" method="POST" enctype="multipart/form-data">
+                    <div class="input-group mb-3">
+                        <input type="file" class="form-control" name="file" accept=".xlsx" required>
+                        <button type="submit" class="btn btn-outline-primary">
+                            <i class="bi bi-upload"></i> Import
+                        </button>
+                    </div>
+                </form>
+                
+                {% if config.storage_mode == 'firebase' %}
+                <hr>
+                <h6 class="mb-3">Sync Local to Cloud</h6>
+                <p class="text-muted">Upload your local Excel data to Firebase.</p>
+                <form action="{{ url_for('sync_to_firebase') }}" method="POST">
+                    <button type="submit" class="btn btn-outline-info">
+                        <i class="bi bi-cloud-upload"></i> Sync to Firebase
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Default Return Rates -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-percent"></i> Default Expected Returns (for Forecasting)
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">These default rates are used for forecasting when asset-specific rates are not set:</p>
+                <div class="row">
+                    {% for key, value in default_returns.items() %}
+                    <div class="col-md-3 mb-2">
+                        <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                            <span>{{ key.replace('_', ' ').title() }}</span>
+                            <span class="badge bg-primary">{{ value }}%</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <small class="text-muted mt-3 d-block">
+                    <i class="bi bi-info-circle"></i> To change expected returns, edit individual assets and set their expected return rate.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Firebase Setup Instructions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-question-circle"></i> How to Setup Firebase Firestore
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li class="mb-2">
+                        Go to <a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a> and create a new project
+                    </li>
+                    <li class="mb-2">
+                        Enable <strong>Firestore Database</strong> in your project (Start in test mode for simplicity)
+                    </li>
+                    <li class="mb-2">
+                        Go to <strong>Project Settings → Service Accounts</strong>
+                    </li>
+                    <li class="mb-2">
+                        Click <strong>"Generate new private key"</strong> to download the JSON file
+                    </li>
+                    <li class="mb-2">
+                        Upload the JSON file above or place it in a secure location and provide the path
+                    </li>
+                    <li class="mb-2">
+                        Install Firebase SDK: <code>pip install firebase-admin</code>
+                    </li>
+                </ol>
+                <div class="alert alert-warning mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> 
+                    <strong>Security Note:</strong> Keep your service account key secure. Never share it or commit it to version control.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleFirebaseSettings() {
+    const firebaseRadio = document.getElementById('storage_firebase');
+    const firebaseSettings = document.getElementById('firebase-settings');
+    firebaseSettings.style.display = firebaseRadio.checked ? 'block' : 'none';
+}
+</script>
+{% endblock %}
