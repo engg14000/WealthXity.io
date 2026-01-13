@@ -15,14 +15,14 @@
                 
                 <form action="{{ url_for('update_storage_settings') }}" method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
-                        <div class="form-check mb-2">
+                        <div class="form-check mb-3">
                             <input class="form-check-input" type="radio" name="storage_mode" id="storage_browser" 
                                    value="browser" {% if config.storage_mode != 'firebase' %}checked{% endif %}
                                    onchange="toggleStorageSettings()">
                             <label class="form-check-label" for="storage_browser">
                                 <i class="bi bi-browser-chrome text-warning"></i> 
                                 <strong>Browser (localStorage)</strong>
-                                <br><small class="text-muted">Data stored in your browser. Export before switching devices.</small>
+                                <br><small class="text-muted">Data stored in your browser. Private & offline-capable. Export before switching devices.</small>
                             </label>
                         </div>
                         <div class="form-check">
@@ -32,7 +32,7 @@
                             <label class="form-check-label" for="storage_firebase">
                                 <i class="bi bi-cloud text-primary"></i> 
                                 <strong>Firebase Firestore (Cloud)</strong>
-                                <br><small class="text-muted">Data stored in Google Cloud. Access from anywhere.</small>
+                                <br><small class="text-muted">Data stored in YOUR Google Cloud. Access from anywhere with your credentials.</small>
                             </label>
                         </div>
                     </div>
@@ -40,31 +40,48 @@
                     <!-- Firebase Configuration -->
                     <div id="firebase-settings" style="display: {% if config.storage_mode == 'firebase' %}block{% else %}none{% endif %};">
                         <hr>
-                        <h6 class="mb-3">Firebase Configuration</h6>
+                        <h6 class="mb-3"><i class="bi bi-gear-fill"></i> Firebase Configuration</h6>
+                        
+                        <div class="alert alert-info small">
+                            <i class="bi bi-info-circle"></i> You need your own Firebase project. We don't have access to your data.
+                        </div>
+                        
                         <div class="mb-3">
                             <label class="form-label">Service Account JSON File</label>
                             <input type="file" class="form-control" name="firebase_service_account_file" accept=".json">
                             <small class="text-muted">Upload your Firebase service account key JSON file</small>
                         </div>
+                        
                         <div class="mb-3">
-                            <label class="form-label">Or Service Account Path</label>
+                            <label class="form-label">Or Service Account Path (if file is on server)</label>
                             <input type="text" class="form-control" name="firebase_service_account_path" 
                                    value="{{ config.firebase_config.service_account_path if config.firebase_config else '' }}"
                                    placeholder="/path/to/serviceAccountKey.json">
                         </div>
+                        
                         <div class="mb-3">
                             <label class="form-label">User ID</label>
                             <input type="text" class="form-control" name="firebase_user_id" 
                                    value="{{ config.firebase_config.user_id if config.firebase_config else 'default_user' }}"
-                                   placeholder="your_user_id">
+                                   placeholder="your_unique_user_id">
                             <small class="text-muted">Unique identifier for your data in Firestore</small>
                         </div>
                     </div>
                     
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary mt-2">
                         <i class="bi bi-check-circle"></i> Save Storage Settings
                     </button>
                 </form>
+                
+                {% if config.storage_mode == 'firebase' %}
+                <div class="alert alert-success mt-3 mb-0">
+                    <i class="bi bi-cloud-check"></i> Currently connected to Firebase Firestore
+                </div>
+                {% else %}
+                <div class="alert alert-warning mt-3 mb-0">
+                    <i class="bi bi-hdd"></i> Currently using browser localStorage
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -76,22 +93,30 @@
                 <i class="bi bi-arrow-left-right"></i> Import / Export Data
             </div>
             <div class="card-body">
+                {% if config.storage_mode != 'firebase' %}
                 <div class="alert alert-warning mb-3">
                     <i class="bi bi-exclamation-triangle"></i> 
                     <strong>Important:</strong> Your data is stored in this browser only. 
                     Export your data before clearing browser data or switching devices!
                 </div>
+                {% endif %}
                 
                 <h6 class="mb-3">Export to Excel</h6>
-                <p class="text-muted">Download your data as an Excel file. Save this before closing!</p>
-                <button onclick="exportDataToExcel()" class="btn btn-success mb-4">
+                <p class="text-muted small">Download your data as an Excel file for backup.</p>
+                {% if config.storage_mode == 'firebase' %}
+                <a href="{{ url_for('api_export_excel') }}" class="btn btn-success mb-4">
+                    <i class="bi bi-download"></i> Export to Excel
+                </a>
+                {% else %}
+                <button onclick="exportToExcel()" class="btn btn-success mb-4">
                     <i class="bi bi-download"></i> Export to Excel
                 </button>
+                {% endif %}
                 
                 <hr>
                 
                 <h6 class="mb-3">Import from Excel</h6>
-                <p class="text-muted">Import data from a previously exported Excel file.</p>
+                <p class="text-muted small">Import data from a previously exported Excel file.</p>
                 <div class="input-group mb-3">
                     <input type="file" class="form-control" id="excelImportFile" accept=".xlsx">
                     <button type="button" class="btn btn-outline-success" onclick="handleExcelImport()">
@@ -99,16 +124,71 @@
                     </button>
                 </div>
                 
-                {% if config.storage_mode == 'firebase' %}
+                {% if config.storage_mode != 'firebase' %}
                 <hr>
-                <h6 class="mb-3">Sync Local to Cloud</h6>
-                <p class="text-muted">Upload your local Excel data to Firebase.</p>
-                <form action="{{ url_for('sync_to_firebase') }}" method="POST">
-                    <button type="submit" class="btn btn-outline-info">
-                        <i class="bi bi-cloud-upload"></i> Sync to Firebase
-                    </button>
-                </form>
+                <h6 class="mb-3">Clear All Data</h6>
+                <p class="text-muted small">Delete all data from browser storage. This cannot be undone!</p>
+                <button onclick="handleClearData()" class="btn btn-outline-danger">
+                    <i class="bi bi-trash"></i> Clear All Data
+                </button>
                 {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Firebase Setup Instructions -->
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-question-circle"></i> How to Setup Firebase Firestore
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <ol>
+                            <li class="mb-2">
+                                Go to <a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a> and create a new project (or use existing)
+                            </li>
+                            <li class="mb-2">
+                                Enable <strong>Firestore Database</strong> in your project
+                                <br><small class="text-muted">Build → Firestore Database → Create Database → Start in test mode (for simplicity)</small>
+                            </li>
+                            <li class="mb-2">
+                                Go to <strong>Project Settings → Service Accounts</strong>
+                                <br><small class="text-muted">Click the gear icon next to "Project Overview"</small>
+                            </li>
+                            <li class="mb-2">
+                                Click <strong>"Generate new private key"</strong> to download the JSON file
+                            </li>
+                            <li class="mb-2">
+                                Upload the JSON file above or place it on your server and provide the path
+                            </li>
+                            <li class="mb-2">
+                                Set a unique <strong>User ID</strong> to identify your data
+                            </li>
+                        </ol>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="alert alert-danger">
+                            <i class="bi bi-shield-exclamation"></i> 
+                            <strong>Security Notes:</strong>
+                            <ul class="small mb-0 mt-2">
+                                <li>Keep your service account key secure</li>
+                                <li>Never share it publicly</li>
+                                <li>Never commit it to version control</li>
+                                <li>We don't store or have access to your credentials</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <h6>Required Python Package</h6>
+                <p class="text-muted small mb-2">Make sure firebase-admin is installed:</p>
+                <code>pip install firebase-admin</code>
             </div>
         </div>
     </div>
@@ -141,38 +221,24 @@
     </div>
 </div>
 
-<!-- Firebase Setup Instructions -->
+<!-- Current Data Summary -->
 <div class="row">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
-                <i class="bi bi-question-circle"></i> How to Setup Firebase Firestore
+                <i class="bi bi-info-circle"></i> Current Data Summary
             </div>
-            <div class="card-body">
-                <ol>
-                    <li class="mb-2">
-                        Go to <a href="https://console.firebase.google.com/" target="_blank">Firebase Console</a> and create a new project
-                    </li>
-                    <li class="mb-2">
-                        Enable <strong>Firestore Database</strong> in your project (Start in test mode for simplicity)
-                    </li>
-                    <li class="mb-2">
-                        Go to <strong>Project Settings → Service Accounts</strong>
-                    </li>
-                    <li class="mb-2">
-                        Click <strong>"Generate new private key"</strong> to download the JSON file
-                    </li>
-                    <li class="mb-2">
-                        Upload the JSON file above or place it in a secure location and provide the path
-                    </li>
-                    <li class="mb-2">
-                        Install Firebase SDK: <code>pip install firebase-admin</code>
-                    </li>
-                </ol>
-                <div class="alert alert-warning mb-0">
-                    <i class="bi bi-exclamation-triangle"></i> 
-                    <strong>Security Note:</strong> Keep your service account key secure. Never share it or commit it to version control.
+            <div class="card-body" id="data-summary">
+                {% if config.storage_mode == 'firebase' %}
+                <p class="text-muted">Data is stored in Firebase Firestore. View your data in the Firebase Console.</p>
+                {% else %}
+                <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span class="ms-2">Loading data summary...</span>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -185,9 +251,45 @@ function toggleStorageSettings() {
     firebaseSettings.style.display = firebaseRadio.checked ? 'block' : 'none';
 }
 
-function exportDataToExcel() {
-    window.location.href = '/api/export-excel';
+{% if config.storage_mode != 'firebase' %}
+function loadDataSummary() {
+    const data = getLocalData();
+    const summaryDiv = document.getElementById('data-summary');
+    
+    const sheets = Object.keys(data).filter(k => data[k] && data[k].length > 0);
+    
+    if (sheets.length === 0) {
+        summaryDiv.innerHTML = `
+            <div class="text-center py-3">
+                <i class="bi bi-inbox display-4 text-muted"></i>
+                <p class="mt-2 text-muted">No data stored in browser yet.</p>
+            </div>`;
+        return;
+    }
+    
+    const summaryRows = sheets.map(sheet => `
+        <div class="col-md-4 mb-2">
+            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                <span>${sheet}</span>
+                <span class="badge bg-secondary">${data[sheet].length} items</span>
+            </div>
+        </div>
+    `).join('');
+    
+    const totalItems = sheets.reduce((sum, s) => sum + data[s].length, 0);
+    const storageUsed = new Blob([JSON.stringify(data)]).size;
+    const storageKB = (storageUsed / 1024).toFixed(2);
+    
+    summaryDiv.innerHTML = `
+        <div class="row mb-3">
+            <div class="col-md-6"><strong>Total Items:</strong> ${totalItems}</div>
+            <div class="col-md-6"><strong>Storage Used:</strong> ${storageKB} KB</div>
+        </div>
+        <div class="row">${summaryRows}</div>`;
 }
+
+document.addEventListener('DOMContentLoaded', loadDataSummary);
+{% endif %}
 
 async function handleExcelImport() {
     const fileInput = document.getElementById('excelImportFile');
@@ -213,17 +315,28 @@ async function handleExcelImport() {
         const result = await response.json();
         
         if (result.success) {
+            {% if config.storage_mode != 'firebase' %}
             if (result.data) {
                 saveLocalData(result.data);
             }
+            {% endif %}
             alert('Data imported successfully!');
             location.reload();
         } else {
-            alert('Import failed: ' + result.message);
+            alert('Import failed: ' + (result.message || 'Unknown error'));
         }
     } catch (err) {
         alert('Import failed: ' + err.message);
     }
+}
+
+function handleClearData() {
+    if (!confirm('Are you sure you want to delete ALL data? This cannot be undone!')) return;
+    if (!confirm('This will permanently delete all your portfolio data. Continue?')) return;
+    
+    localStorage.removeItem(STORAGE_KEY);
+    alert('All data cleared.');
+    location.reload();
 }
 </script>
 {% endblock %}

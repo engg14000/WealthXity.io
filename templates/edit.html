@@ -9,31 +9,127 @@
 </div>
 
 <div class="card">
-    <div class="card-body">
-        <form method="POST">
-            <div class="row">
-                {% for field, value in item.items() %}
-                    <div class="col-md-6 mb-3">
-                        <label for="{{ field }}" class="form-label">{{ field.replace('_', ' ')|title }}</label>
-                        {% if 'date' in field %}
-                            <input type="date" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
-                        {% elif 'balance' in field or 'amount' in field or 'price' in field or 'nav' in field or 'limit' in field or 'assured' in field or 'premium' in field or 'rate' in field or 'emi' in field or 'points' in field or 'units' in field %}
-                            <input type="number" step="0.01" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
-                        {% elif 'tenure' in field or 'months' in field or 'billing' in field or 'due' in field %}
-                            <input type="number" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
-                        {% else %}
-                            <input type="text" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
-                        {% endif %}
-                    </div>
-                {% endfor %}
+    <div class="card-body" id="edit-container">
+        {% if storage_mode == 'firebase' %}
+            {# Firebase mode: server rendered form #}
+            <form method="POST">
+                <div class="row">
+                    {% for field, value in item.items() %}
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ field }}" class="form-label">{{ field.replace('_', ' ')|title }}</label>
+                            {% if 'date' in field %}
+                                <input type="date" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
+                            {% elif 'balance' in field or 'amount' in field or 'price' in field or 'nav' in field or 'limit' in field or 'assured' in field or 'premium' in field or 'rate' in field or 'emi' in field or 'points' in field or 'units' in field %}
+                                <input type="number" step="0.01" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
+                            {% elif 'tenure' in field or 'months' in field or 'billing' in field or 'due' in field %}
+                                <input type="number" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
+                            {% else %}
+                                <input type="text" class="form-control" id="{{ field }}" name="{{ field }}" value="{{ value }}">
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Update Item
+                    </button>
+                    <a href="{{ url_for('view_items', item_type=item_type) }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                </div>
+            </form>
+        {% else %}
+            {# Browser mode: loading placeholder #}
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading item...</p>
             </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if storage_mode != 'firebase' %}
+<script>
+const itemType = '{{ item_type }}';
+const rowIndex = {{ row_index }};
+
+const typeToSheet = {
+    'mf': 'Mutual Funds', 'stock': 'Stocks', 'realestate': 'Real Estate',
+    'gold': 'Gold', 'silver': 'Silver', 'bank': 'Bank Accounts',
+    'fd': 'Fixed Deposits', 'nps': 'NPS Accounts', 'ppf': 'PPF',
+    'epf': 'EPF', 'insurance': 'Insurance Policies', 'cc': 'Credit Cards', 'loan': 'Loans'
+};
+
+const sheetName = typeToSheet[itemType];
+
+function loadItem() {
+    const items = getSheetData(sheetName);
+    const container = document.getElementById('edit-container');
+    
+    if (!items || rowIndex >= items.length) {
+        container.innerHTML = `
+            <div class="text-center py-5">
+                <i class="bi bi-exclamation-triangle display-1 text-warning"></i>
+                <h4 class="mt-3">Item Not Found</h4>
+                <p class="text-muted">The item you're trying to edit doesn't exist.</p>
+                <a href="/view/${itemType}" class="btn btn-primary">Back to List</a>
+            </div>`;
+        return;
+    }
+    
+    const item = items[rowIndex];
+    const fields = Object.keys(item);
+    
+    let formFields = fields.map(field => {
+        const value = item[field] ?? '';
+        let inputHtml;
+        
+        if (field.includes('date')) {
+            inputHtml = `<input type="date" class="form-control" id="${field}" name="${field}" value="${value}">`;
+        } else if (['balance', 'amount', 'price', 'nav', 'limit', 'assured', 'premium', 'rate', 'emi', 'points', 'units', 'value', 'weight', 'income', 'contribution'].some(k => field.includes(k))) {
+            inputHtml = `<input type="number" step="0.01" class="form-control" id="${field}" name="${field}" value="${value}">`;
+        } else if (['tenure', 'months', 'billing', 'due', 'quantity'].some(k => field.includes(k))) {
+            inputHtml = `<input type="number" class="form-control" id="${field}" name="${field}" value="${value}">`;
+        } else {
+            inputHtml = `<input type="text" class="form-control" id="${field}" name="${field}" value="${value}">`;
+        }
+        
+        return `
+            <div class="col-md-6 mb-3">
+                <label for="${field}" class="form-label">${field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</label>
+                ${inputHtml}
+            </div>`;
+    }).join('');
+    
+    container.innerHTML = `
+        <form id="edit-form" onsubmit="handleSubmit(event)">
+            <div class="row">${formFields}</div>
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-check-circle"></i> Update Item
                 </button>
-                <a href="{{ url_for('view_items', item_type=item_type) }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+                <a href="/view/${itemType}" class="btn btn-outline-secondary ms-2">Cancel</a>
             </div>
-        </form>
-    </div>
-</div>
+        </form>`;
+}
+
+function handleSubmit(event) {
+    event.preventDefault();
+    
+    const form = document.getElementById('edit-form');
+    const formData = new FormData(form);
+    
+    const updatedItem = {};
+    for (const [key, value] of formData.entries()) {
+        updatedItem[key] = value;
+    }
+    
+    updateItem(sheetName, rowIndex, updatedItem);
+    alert('Item updated successfully!');
+    window.location.href = '/view/' + itemType;
+}
+
+document.addEventListener('DOMContentLoaded', loadItem);
+</script>
+{% endif %}
 {% endblock %}
